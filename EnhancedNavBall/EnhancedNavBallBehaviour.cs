@@ -24,10 +24,16 @@ public class EnhancedNavBallBehaviour : MonoBehaviour
     private GameObject _ghostPrograde;
     private GameObject _ghostRetrograde;
 
+    private GameObject _offsetPrograde;
+    private GameObject _offsetRetrograde;
+
     private static readonly Color _radialColour = new Color(0, 1, 0.958f);
     private static readonly Color _maneuverColour = new Color(0, 0.1137f, 1, _manueverAlpha);
     private static readonly Color _normalColour = new Color(0.930f, 0, 1);
-    private static readonly Color _progradeColour = new Color(0.84f, 0.98f, 0); 
+    private static readonly Color _progradeColour = new Color(0.84f, 0.98f, 0);
+
+    private static readonly Color _offsetProgradeColour = new Color(0, 0, 1);
+    private static readonly Color _offsetRetrogradeColour = new Color(0, 0.5f, 0); 
 
     private CalculationStore _calculationStore;
 
@@ -212,6 +218,26 @@ public class EnhancedNavBallBehaviour : MonoBehaviour
             new Vector2(0.0f, _graphicOffset),
             _radialColour,
             _vectorsPivotTransform);
+
+        _offsetPrograde = Utilities.CreateSimplePlane(
+            "offsetPrograde",
+            _vectorSize);
+
+        _offsetRetrograde = Utilities.CreateSimplePlane(
+            "offsetRetrograde",
+            _vectorSize);
+
+        SetupObject(
+            _offsetPrograde,
+            new Vector2(0f, _graphicOffset * 2),
+            _offsetProgradeColour,
+            _vectorsPivotTransform);
+
+        SetupObject(
+            _offsetRetrograde,
+            new Vector2(_graphicOffset, _graphicOffset * 2),
+            _offsetRetrogradeColour,
+            _vectorsPivotTransform);
     }
 
     private void SetupObject(
@@ -255,6 +281,7 @@ public class EnhancedNavBallBehaviour : MonoBehaviour
         _calculationStore.RunCalculations(vessel, gymbal);
 
         UpdateRadialNormalVectors();
+        UpdateOffsetVectors();
         CalculateManeuver();
         HideBehindVectors();
         UpdateGhostingVectors(vessel);
@@ -354,6 +381,7 @@ public class EnhancedNavBallBehaviour : MonoBehaviour
             _ghostRetrograde, 
             -_calculationStore.ProgradeSurface.z,
             _ghostingAlpha);
+
     }
 
     private void CalculateAndUpdateGhostingAlpha(
@@ -440,17 +468,20 @@ public class EnhancedNavBallBehaviour : MonoBehaviour
         TestVisibility(_radialMinus);
         TestVisibility(_normalPlus);
         TestVisibility(_normalMinus);
+
+        TestVisibility(_offsetPrograde, true);
+        TestVisibility(_offsetRetrograde, true);
     }
 
-    private void TestVisibility(GameObject o)
+    private void TestVisibility(GameObject o, bool ignoreMode = false)
     {
         if (o == null)
             return;
 
         bool visable;
             
-        if (FlightUIController.speedDisplayMode == FlightUIController.SpeedDisplayModes.Surface
-            || FlightUIController.speedDisplayMode == FlightUIController.SpeedDisplayModes.Target)
+        if (!ignoreMode && (FlightUIController.speedDisplayMode == FlightUIController.SpeedDisplayModes.Surface
+            || FlightUIController.speedDisplayMode == FlightUIController.SpeedDisplayModes.Target))
         {
             visable = false;
         }
@@ -468,7 +499,7 @@ public class EnhancedNavBallBehaviour : MonoBehaviour
     {
         if (_navBallProgradeMagnatude == 0f)
             _navBallProgradeMagnatude = _navBallBehaviour.progradeVector.localPosition.magnitude;
-        
+
 
         //switch (FlightUIController.speedDisplayMode)
         //{
@@ -491,7 +522,7 @@ public class EnhancedNavBallBehaviour : MonoBehaviour
 
         _radialMinus.transform.localPosition = -_calculationStore.RadialPlus * _navBallProgradeMagnatude;
         _normalMinus.transform.localPosition = -_calculationStore.NormalPlus * _navBallProgradeMagnatude;
-        
+
         //Utilities.DebugLog(LogLevel.Diagnostic,
         //    string.Format("MechJeb Calc: \n{0}\n{1}\n{2}\n{3}\n{4}\n{5}",
         //        BuildOutput(CoM, "CoM"),
@@ -509,6 +540,16 @@ public class EnhancedNavBallBehaviour : MonoBehaviour
         //        BuildOutput(_normalPlus.transform.localPosition, "_normalPlus"),
         //        BuildOutput(_radialMinus.transform.localPosition, "_radialMinus"),
         //        BuildOutput(_normalMinus.transform.localPosition, "_normalMinus")));
+    }
+
+    private void UpdateOffsetVectors()
+    {
+        if (_navBallProgradeMagnatude == 0f)
+            _navBallProgradeMagnatude = _navBallBehaviour.progradeVector.localPosition.magnitude;
+
+        // Apply to nav ball
+        _offsetPrograde.transform.localPosition = _calculationStore.OffsetProgradeSurface * _navBallProgradeMagnatude;
+        _offsetRetrograde.transform.localPosition = _calculationStore.OffsetRetrogradeSurface * _navBallProgradeMagnatude;
     }
 
     #endregion
